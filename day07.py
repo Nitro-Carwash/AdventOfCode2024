@@ -12,18 +12,18 @@ def get_valid_equations(equations, allow_concatenation=False):
     return valid
 
 
-def is_valid_equation(target, operands, operator_index, running_total, allow_concatenation=False):
-    if operator_index == len(operands):
+def is_valid_equation(target, operands, operand_index, running_total, allow_concatenation=False):
+    if operand_index == len(operands):
         return target == running_total
 
     if running_total > target:
         return False
 
-    is_valid = is_valid_equation(target, operands, operator_index + 1, running_total + operands[operator_index], allow_concatenation) \
-           or is_valid_equation(target, operands, operator_index + 1, running_total * operands[operator_index], allow_concatenation)
+    is_valid = is_valid_equation(target, operands, operand_index + 1, running_total + operands[operand_index], allow_concatenation) \
+           or is_valid_equation(target, operands, operand_index + 1, running_total * operands[operand_index], allow_concatenation)
 
     if allow_concatenation and not is_valid:
-        is_valid = is_valid_equation(target, operands, operator_index + 1, concat_int(running_total, operands[operator_index]), allow_concatenation)
+        is_valid = is_valid_equation(target, operands, operand_index + 1, concat_int(running_total, operands[operand_index]), allow_concatenation)
 
     return is_valid
 
