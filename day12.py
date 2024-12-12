@@ -9,10 +9,10 @@ def load_input():
 
 def sum_patch_costs(farm, use_discount=False):
     total = 0
-    seen = [[False for _ in range(len(farm[0]))] for _ in range(len(farm))]
+    seen: set[tuple[int, int]] = set()
     for y in range(len(farm)):
         for x in range(len(farm[0])):
-            if not seen[y][x]:
+            if (x, y) not in seen:
                 total += calculate_price_for_patch(farm, x, y, farm[y][x], seen, use_discount)
 
     return total
@@ -20,10 +20,10 @@ def sum_patch_costs(farm, use_discount=False):
 
 def calculate_price_for_patch(farm, x_start: int, y_start: int, plant_type: str, seen, use_bulk_discount=False):
     bfs = [(x_start, y_start)]
-    seen[y_start][x_start] = True
+    seen.add((x_start, y_start))
     area = 1
     if use_bulk_discount:
-        sides = [[[False, False, False, False] for _ in range(len(farm[0]))] for _ in range(len(farm))]
+        sides: set[tuple[int, int, int]] = set()
     perimeter = 0
     while len(bfs) > 0:
         x, y = bfs.pop(0)
@@ -33,12 +33,12 @@ def calculate_price_for_patch(farm, x_start: int, y_start: int, plant_type: str,
             ny = y + y_offsets[direction]
             if nx < 0 or nx >= len(farm[0]) or ny < 0 or ny >= len(farm) or farm[ny][nx] != plant_type:
                 if use_bulk_discount:
-                    perimeter += 1 if add_side(sides, direction, x, y) else 0
+                    perimeter += 1 if add_side(farm, sides, direction, x, y) else 0
                 else:
                     perimeter += 1
-            elif not seen[ny][nx]:
+            elif (nx, ny) not in seen:
                 area += 1
-                seen[ny][nx] = True
+                seen.add((nx, ny))
                 bfs.append((nx, ny))
 
     return area * perimeter
@@ -51,14 +51,14 @@ def calculate_price_for_patch(farm, x_start: int, y_start: int, plant_type: str,
 # Whenever we find a fence, we check the orthogonal neighbor cells to this cell's transition, and check if they
 # have also seen this transition.  If not, then this is a new side.  Since the calling function is doing a BFS, there
 # should never be a situation where we will later need to join two side segments - not that I've proven this ;)
-def add_side(sides, direction: int, x: int, y: int):
-    sides[y][x][direction] = True
+def add_side(farm, sides, direction: int, x: int, y: int):
+    sides.add((x, y, direction))
     for i in [1, 3]:
         nx = x + x_offsets[(direction + i) % len(x_offsets)]
         ny = y + y_offsets[(direction + i) % len(y_offsets)]
-        if nx < 0 or nx >= len(sides[0]) or ny < 0 or ny >= len(sides):
+        if nx < 0 or nx >= len(farm[0]) or ny < 0 or ny >= len(farm):
             continue
-        if sides[ny][nx][direction]:
+        if (nx, ny, direction) in sides:
             return False
 
     return True
