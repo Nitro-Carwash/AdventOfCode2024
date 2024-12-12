@@ -33,7 +33,7 @@ def calculate_price_for_patch(farm, x_start: int, y_start: int, plant_type: str,
             ny = y + y_offsets[direction]
             if nx < 0 or nx >= len(farm[0]) or ny < 0 or ny >= len(farm) or farm[ny][nx] != plant_type:
                 if use_bulk_discount:
-                    perimeter += 1 if add_side(farm, sides, direction, x, y) else 0
+                    perimeter += add_side(farm, sides, direction, x, y)
                 else:
                     perimeter += 1
             elif (nx, ny) not in seen:
@@ -44,24 +44,25 @@ def calculate_price_for_patch(farm, x_start: int, y_start: int, plant_type: str,
     return area * perimeter
 
 
-# Add a side record to the data structure, and return true if its neighbors have not seen this side (first time)
-# The sides data structure is just a mxn 2d array with 4 boolean entries in each cell.
-# Each entry represents whether this cell (IN the matching farm patch) has already seen a transition out of the farm
-# patch (a fence) in this cardinal direction (in whatever order x_offset and y_offset take us - it's arbitrary)
+# Add a side record to the data structure, and return a delta for to adjust the total accordingly
+# Each entry of sides represents whether this cell (IN the matching farm patch) has already seen a transition out of the
+# farm patch (a fence) in this cardinal direction (in whatever order x_offset and y_offset take us - it's arbitrary)
 # Whenever we find a fence, we check the orthogonal neighbor cells to this cell's transition, and check if they
-# have also seen this transition.  If not, then this is a new side.  Since the calling function is doing a BFS, there
-# should never be a situation where we will later need to join two side segments - not that I've proven this ;)
+# have also seen this transition.  If not, then this is a new side.  If one of them has seen this transition, then it's
+# not new.  If BOTH of them have seen this transition then there's a problem - at some point these two sides appeared
+# to have been disjoint and so the global total is too high.  We return -1 in this case to adjust it back.
 def add_side(farm, sides, direction: int, x: int, y: int):
     sides.add((x, y, direction))
+    orthogonal_count = 0
     for i in [1, 3]:
         nx = x + x_offsets[(direction + i) % len(x_offsets)]
         ny = y + y_offsets[(direction + i) % len(y_offsets)]
         if nx < 0 or nx >= len(farm[0]) or ny < 0 or ny >= len(farm):
             continue
         if (nx, ny, direction) in sides:
-            return False
+            orthogonal_count += 1
 
-    return True
+    return -1 if orthogonal_count == 2 else (1 - orthogonal_count)
 
 
 farm_map = load_input()
